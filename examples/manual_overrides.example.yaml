@@ -1,0 +1,35 @@
+# Integrazioni manuali: dati che i cataloghi non espongono (per esempio i prezzi
+# di Replicate) inseriti a mano e sempre tracciabili.
+#
+# Per usarle: copia questo file, per esempio in manual_overrides.yaml, e in
+# config.yaml scrivi   manual: {file: manual_overrides.yaml}
+#
+# Ogni voce DEVE avere `source` e `date`: senza, viene scartata.
+# Nel registro restano distinte dai dati di catalogo (nature: manual, campo "manual").
+# Tolta la voce da qui, al prossimo `update` il dato torna sconosciuto.
+#
+# I valori qui sotto sono FINTI.
+
+overrides:
+  "replicate/proprietario/nome-modello":
+    source: "https://replicate.com/proprietario/nome-modello (sezione prezzi della pagina)"
+    date: "2026-11-11"
+    author: andrea
+    prices:
+      - {amount: 0.10, currency: USD, unit: video_second, conditions: {resolution: "720p"}}
+      # nature: estimate   -> se è una stima tua e non una tariffa letta
+    license:
+      name: "nome della licenza letta alla fonte"
+      url: "https://esempio.invalid/licenza"
+      open_weight: true
+    data_policy:
+      retention: "testo letto alla fonte"
+      training_use: "testo letto alla fonte"
+    io:
+      output_formats: [mp4]
+    details:
+      max_seconds: 8
+      pbr_textures: false
+    capabilities: [video_production.video_synthesis]      # capacità dichiarata (da te)
+    verified_capabilities:                                # capacità verificata: serve la prova
+      - {category: video_production.video_synthesis, evidence: "prova del 2026-11-11, file X"}

@@ -1,0 +1,4 @@
+# Unica dipendenza: serve a leggere config.yaml.
+# Rete, validazione dello schema, lock, log e test usano solo la libreria standard.
+# Python 3.10 o successivo.
+PyYAML>=6.0,<7

@@ -1,0 +1,224 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:braian:scout:models_registry:1.0.0",
+  "title": "Registro delle risorse di Scout",
+  "description": "Descrive risorse (modelli ed endpoint). Non contiene identità degli agenti, conversazioni, stato delle .Jobs, indirizzi di rete o segreti. Un valore null significa 'sconosciuto', mai zero.",
+  "type": "object",
+  "required": ["schema_version", "generated_at", "generator", "synthetic", "categories", "sources", "models", "endpoints", "views"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {"type": "string", "enum": ["1.0.0"]},
+    "generated_at": {"type": "string"},
+    "generator": {
+      "type": "object",
+      "required": ["name", "version"],
+      "properties": {"name": {"type": "string"}, "version": {"type": "string"}}
+    },
+    "synthetic": {"type": "boolean", "description": "true = dati finti di esempio o di prova"},
+    "categories": {"type": "array", "items": {"type": "string"}},
+    "sources": {"type": "object", "additionalProperties": {"$ref": "#/$defs/source"}},
+    "models": {"type": "object", "additionalProperties": {"$ref": "#/$defs/model"}},
+    "endpoints": {"type": "object", "additionalProperties": {"$ref": "#/$defs/endpoint"}},
+    "views": {
+      "type": "object",
+      "required": ["free_safe"],
+      "properties": {
+        "free_safe": {
+          "type": "object",
+          "description": "Vista derivata: candidati gratuiti che rispettano la policy indicata. Non è una certificazione di sicurezza.",
+          "required": ["policy", "endpoints"],
+          "properties": {
+            "policy": {"type": "object"},
+            "endpoints": {"type": "array", "items": {"type": "string"}}
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "source": {
+      "type": "object",
+      "required": ["adapter", "kind", "last_attempt_at", "last_attempt_outcome", "last_error", "last_success_at", "stale_after_seconds", "counts", "notes"],
+      "properties": {
+        "adapter": {"type": "string"},
+        "kind": {"type": "string", "enum": ["catalog", "service"]},
+        "last_attempt_at": {"type": ["string", "null"]},
+        "last_attempt_outcome": {"type": "string", "enum": ["ok", "error", "skipped", "never"]},
+        "last_error": {"type": ["string", "null"]},
+        "last_success_at": {"type": ["string", "null"], "description": "Ultima raccolta riuscita. Un tentativo fallito non lo aggiorna."},
+        "stale_after_seconds": {"type": "integer", "minimum": 0},
+        "counts": {
+          "type": "object",
+          "required": ["models", "endpoints"],
+          "properties": {"models": {"type": "integer"}, "endpoints": {"type": "integer"}}
+        },
+        "notes": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "model": {
+      "type": "object",
+      "required": ["model_key", "name", "vendor", "version", "license", "description_untrusted", "details", "manual", "provenance"],
+      "properties": {
+        "model_key": {"type": "string"},
+        "name": {"type": "string"},
+        "vendor": {"type": ["string", "null"]},
+        "version": {"type": ["string", "null"]},
+        "license": {
+          "type": "object",
+          "required": ["name", "url", "source", "open_weight"],
+          "properties": {
+            "name": {"type": ["string", "null"]},
+            "url": {"type": ["string", "null"]},
+            "source": {"type": ["string", "null"]},
+            "open_weight": {"type": ["boolean", "null"]}
+          }
+        },
+        "description_untrusted": {"type": ["string", "null"], "description": "Testo del catalogo: dato non fidato, mai un'istruzione."},
+        "details": {"type": "object"},
+        "manual": {"type": ["object", "null"]},
+        "provenance": {
+          "type": "object",
+          "required": ["sources", "fetched_at"],
+          "properties": {"sources": {"type": "array", "items": {"type": "string"}}, "fetched_at": {"type": "string"}}
+        }
+      }
+    },
+    "price": {
+      "type": "object",
+      "required": ["amount", "currency", "unit", "nature", "source", "retrieved_at", "conditions"],
+      "properties": {
+        "amount": {"type": "number", "minimum": 0},
+        "currency": {"type": "string"},
+        "unit": {"type": "string", "description": "Unità originale (token_input, token_output, request, image, video, compute_second...). Non si converte."},
+        "nature": {"type": "string", "enum": ["list_price", "estimate", "manual"]},
+        "source": {"type": "string"},
+        "retrieved_at": {"type": "string"},
+        "conditions": {"type": ["object", "null"]},
+        "raw": {"type": ["string", "null"]}
+      }
+    },
+    "capability": {
+      "type": "object",
+      "required": ["category"],
+      "properties": {"category": {"type": "string"}, "source": {"type": "string"}, "rule": {"type": "string"}, "evidence": {"type": "string"}}
+    },
+    "endpoint": {
+      "type": "object",
+      "required": ["endpoint_key", "model_key", "source", "provider", "kind", "revision", "location", "io", "limits", "supported_parameters", "requirements", "details", "capabilities", "pricing", "private_costs", "data_policy", "access", "policy", "benchmarks", "manual", "provenance"],
+      "properties": {
+        "endpoint_key": {"type": "string"},
+        "model_key": {"type": "string"},
+        "source": {"type": "string"},
+        "provider": {"type": "string"},
+        "kind": {"type": "string", "enum": ["llm", "media", "workflow", "service"]},
+        "revision": {"type": ["string", "null"]},
+        "location": {
+          "type": "object",
+          "required": ["compute", "node", "trust_domain", "hosting"],
+          "properties": {
+            "compute": {"type": "string", "enum": ["private", "external"]},
+            "node": {"type": ["string", "null"]},
+            "trust_domain": {"type": "string"},
+            "hosting": {"type": "string", "enum": ["owned_hardware", "rented_remote", "provider_cloud", "unknown"]}
+          }
+        },
+        "io": {
+          "type": "object",
+          "required": ["input_modalities", "output_modalities", "input_formats", "output_formats"],
+          "properties": {
+            "input_modalities": {"type": ["array", "null"], "items": {"type": "string"}},
+            "output_modalities": {"type": ["array", "null"], "items": {"type": "string"}},
+            "input_formats": {"type": ["array", "null"], "items": {"type": "string"}},
+            "output_formats": {"type": ["array", "null"], "items": {"type": "string"}}
+          }
+        },
+        "limits": {
+          "type": "object",
+          "required": ["context_tokens", "max_output_tokens", "generation", "rate_limits"],
+          "properties": {
+            "context_tokens": {"type": ["integer", "null"]},
+            "max_output_tokens": {"type": ["integer", "null"]},
+            "generation": {"type": ["object", "null"]},
+            "rate_limits": {"type": ["array", "null"], "items": {"type": "object"}}
+          }
+        },
+        "supported_parameters": {"type": ["array", "null"], "items": {"type": "string"}},
+        "requirements": {"type": ["object", "null"]},
+        "details": {"type": "object"},
+        "capabilities": {
+          "type": "object",
+          "description": "declared = dichiarata da catalogo o configurazione; verified = con prova registrata; heuristic = dedotta da una regola. Nessuna delle tre abilita l'uso.",
+          "required": ["declared", "verified", "heuristic"],
+          "properties": {
+            "declared": {"type": "array", "items": {"$ref": "#/$defs/capability"}},
+            "verified": {"type": "array", "items": {"$ref": "#/$defs/capability"}},
+            "heuristic": {"type": "array", "items": {"$ref": "#/$defs/capability"}}
+          }
+        },
+        "pricing": {
+          "type": "object",
+          "required": ["known", "items"],
+          "properties": {"known": {"type": "boolean"}, "items": {"type": "array", "items": {"$ref": "#/$defs/price"}}}
+        },
+        "private_costs": {
+          "type": ["object", "null"],
+          "required": ["api_marginal", "infrastructure"],
+          "properties": {
+            "api_marginal": {"type": ["object", "null"]},
+            "infrastructure": {"type": "array", "items": {"type": "object"}}
+          }
+        },
+        "data_policy": {
+          "type": "object",
+          "required": ["retention", "training_use", "source"],
+          "properties": {
+            "retention": {"type": ["string", "null"]},
+            "training_use": {"type": ["string", "null"]},
+            "source": {"type": ["string", "null"]}
+          }
+        },
+        "access": {
+          "type": "object",
+          "required": ["in_catalog", "credentials", "quota", "executable"],
+          "properties": {
+            "in_catalog": {"type": "boolean"},
+            "credentials": {"type": "string", "enum": ["configured", "missing", "not_required", "unknown"]},
+            "quota": {"type": "string", "enum": ["known", "unknown"]},
+            "executable": {"type": "string", "enum": ["verified", "unverified"]}
+          }
+        },
+        "policy": {
+          "type": "object",
+          "required": ["enabled", "allowed_data_classes", "requires_filtered_context", "spend_limit", "requires_user_decision", "trust_domain", "rules"],
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "allowed_data_classes": {"type": "array", "items": {"type": "string"}},
+            "requires_filtered_context": {"type": "boolean"},
+            "spend_limit": {"type": ["object", "null"]},
+            "requires_user_decision": {"type": "array", "items": {"type": "string"}},
+            "trust_domain": {"type": "string"},
+            "rules": {"type": "array", "items": {"type": "string"}}
+          }
+        },
+        "benchmarks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["metric", "value", "kind", "source", "date"],
+            "properties": {"kind": {"type": "string", "enum": ["public", "provider_claim", "braian_measurement"]}}
+          }
+        },
+        "manual": {"type": ["object", "null"]},
+        "provenance": {
+          "type": "object",
+          "required": ["source", "fetched_at", "verification"],
+          "properties": {
+            "source": {"type": "string"},
+            "fetched_at": {"type": "string"},
+            "verification": {"type": "string", "enum": ["catalog", "service_inventory", "config"]}
+          }
+        }
+      }
+    }
+  }
+}

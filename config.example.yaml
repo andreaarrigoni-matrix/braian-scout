@@ -1,0 +1,208 @@
+# Scout — configurazione d'esempio, commentata.
+# Copia questo file in config.yaml e adatta nodi, fonti e policy.
+# I percorsi relativi partono dalla cartella di questo file.
+# Qui NON vanno chiavi né token: stanno in variabili d'ambiente (vedi .env.example).
+
+paths:
+  data_dir: data                 # registro, stato dei servizi, cache, log
+
+# ---------------------------------------------------------------- nodi
+# Le macchine dove gira il calcolo privato. Cambiare macchina = cambiare qui.
+nodes:
+  shadow:
+    address: 100.64.0.10         # indirizzo Meshnet (questo è un esempio)
+    hosting: rented_remote       # owned_hardware | rented_remote | provider_cloud | unknown
+                                 # un PC remoto nel cloud NON è hardware posseduto
+    trust_domain: privato_remoto # etichetta libera, usata dalle policy
+    infrastructure_costs:        # costi fissi, separati dal costo API per richiesta
+      - {amount: 30, currency: EUR, unit: month, note: "abbonamento (cifra d'esempio)"}
+  # numero-uno:
+  #   address: 127.0.0.1
+  #   hosting: owned_hardware
+  #   trust_domain: casa
+
+# ---------------------------------------------------------------- fonti
+# Ogni fonte si aggiorna da sola: se una fallisce, le altre proseguono.
+# enabled: false la spegne senza cancellarla.
+sources:
+  ollama-shadow:
+    adapter: ollama
+    node: shadow
+    url: "http://{address}:11434"
+    api_marginal_cost: {amount: 0, currency: USD, unit: request}   # costo API per richiesta: nullo
+    expected:                    # capacità ATTESE: dichiarate da te, non verificate da Scout
+      "gemma4-claude":
+        capabilities: [fast_general, editorial_writing]
+        io: {input_modalities: [text], output_modalities: [text]}
+
+  comfyui-shadow:
+    adapter: comfyui
+    node: shadow
+    url: "http://{address}:8188"
+    api_marginal_cost: {amount: 0, currency: USD, unit: request}
+    # ComfyUI acceso non dà nessuna capacità: valgono solo i workflow elencati qui.
+    workflows:
+      video_base:
+        capabilities: [video_production.video_synthesis]
+        file: workflows/video_base.json          # solo informativo: Scout non lo apre e non lo avvia
+        required_nodes: [NomeDelNodoRichiesto]   # verificati con GET /object_info/{nodo}
+        required_models:
+          checkpoints: [modello_video.safetensors]   # verificati con GET /models/checkpoints
+        io: {input_modalities: [text], output_modalities: [video], output_formats: [mp4]}
+        limits: {max_seconds: 5}
+      mesh_pbr:
+        capabilities: [3d_modeling_pro.asset_generation]
+        required_nodes: [NomeDelNodoMesh]
+        io: {input_modalities: [image], output_modalities: ["3d"], output_formats: [glb]}
+        details: {pbr_textures: true}
+
+  # Endpoint generico: per servizi futuri (per esempio sulla Numero Uno).
+  # voce-numero-uno:
+  #   adapter: generic
+  #   node: numero-uno
+  #   url: "http://{address}:9000"
+  #   health_path: /health
+  #   endpoints:
+  #     trascrizione:
+  #       kind: service
+  #       capabilities: []
+  #       io: {input_modalities: [audio], output_modalities: [text]}
+
+  openrouter:
+    adapter: openrouter
+    key_env: OPENROUTER_API_KEY
+    mode: list                   # list = solo i modelli elencati | catalog = scoperta dal catalogo
+    models:
+      - "autore/nome-modello"
+    endpoints_detail: false      # true = una richiesta in più per modello (endpoint per provider); serve la chiave
+    # per mode: catalog
+    # include: ["*"]             # filtri sul nome
+    # max_items: 400
+
+  fal:
+    adapter: fal
+    key_env: FAL_KEY             # senza chiave il catalogo funziona, i prezzi restano sconosciuti
+    mode: catalog
+    categories: [text-to-video, image-to-video, image-to-3d]
+    max_items: 200
+    # mode: list
+    # endpoints: ["fal-ai/nome-endpoint"]
+
+  replicate:
+    adapter: replicate
+    key_env: REPLICATE_API_TOKEN # obbligatorio: senza token la fonte viene saltata
+    mode: catalog
+    collections: [text-to-video, image-to-video, 3d-models]
+    max_items_per_collection: 40
+    # mode: list
+    # models: ["proprietario/nome"]
+
+# ---------------------------------------------------------------- categorie
+# Le otto categorie di base sono obbligatorie; puoi aggiungerne altre in fondo.
+categories:
+  - fast_general
+  - deep_reasoning
+  - coding
+  - editorial_writing
+  - 3d_modeling_pro.script_and_math
+  - 3d_modeling_pro.asset_generation
+  - video_production.direction_and_ffmpeg
+  - video_production.video_synthesis
+
+classification:
+  # Categoria dichiarata dal catalogo -> categoria di .brAIan ("capacità dichiarata").
+  provider_category_map:
+    fal:
+      text-to-video: [video_production.video_synthesis]
+      image-to-video: [video_production.video_synthesis]
+      image-to-3d: [3d_modeling_pro.asset_generation]
+    replicate:
+      text-to-video: [video_production.video_synthesis]
+      image-to-video: [video_production.video_synthesis]
+      3d-models: [3d_modeling_pro.asset_generation]
+  # Regole euristiche: producono "capacità euristica", segnata come tale.
+  # Condizioni possibili: kind, compute, id_regex, supported_parameter,
+  # min_context_tokens, input_modality, output_modality. Dato mancante = regola non soddisfatta.
+  heuristic_rules:
+    - {name: nome-da-codice, category: coding, kind: llm, id_regex: "coder|codestral|devstral"}
+    - {name: reasoning-e-contesto-ampio, category: deep_reasoning, kind: llm,
+       supported_parameter: reasoning, min_context_tokens: 100000}
+    - {name: llm-testuale, category: fast_general, kind: llm, output_modality: text}
+    - {name: llm-testuale-contesto-medio, category: editorial_writing, kind: llm,
+       output_modality: text, min_context_tokens: 32000}
+
+# ---------------------------------------------------------------- integrazioni manuali e benchmark
+manual:
+  file: null                     # es. manual_overrides.yaml (vedi examples/manual_overrides.example.yaml)
+benchmarks:
+  files: []                      # es. [benchmarks/esame_memoria.json] (vedi examples/benchmarks.example.json)
+
+# ---------------------------------------------------------------- policy
+# Scout DESCRIVE i vincoli. Chi li applica è il componente di esecuzione,
+# con api.check_execution_allowed(). Il filtro di epurazione e il Memory
+# Gatekeeper restano componenti a parte.
+policy:
+  # dalla meno alla più delicata. Se una richiesta non dice la classe, vale l'ultima.
+  data_classes: [public, filtered_context, private_memory]
+  default:                       # vale per tutto ciò che nessuna regola nomina, quindi anche per i modelli nuovi
+    enabled: false
+    allowed_data_classes: [public]
+    requires_filtered_context: true
+    spend_limit: null
+    requires_user_decision: []
+  rules:                         # in ordine; se più regole combaciano vince l'ultima, campo per campo
+    - name: locale-shadow
+      match: "ollama-shadow/*"
+      enabled: true
+      allowed_data_classes: [public, filtered_context, private_memory]
+      requires_filtered_context: false
+    # - name: esterno-economico
+    #   match: "openrouter/autore/nome-modello"
+    #   enabled: true
+    #   allowed_data_classes: [public, filtered_context]
+    #   spend_limit: {amount: 0.50, currency: USD, per: task}     # per: task | day | month
+    #   requires_user_decision: ["conferma prima di ogni uso a pagamento"]
+  # Vista free_safe: gratuiti (costo API nullo NOTO), abilitati, con questa classe
+  # di dati consentita. È un filtro, non una certificazione di sicurezza.
+  free_safe:
+    required_data_class: public
+    trust_domains: []            # vuoto = qualunque dominio
+
+# ---------------------------------------------------------------- ordinamento dei candidati
+ranking:
+  # voci possibili: availability, private_first, zero_api_cost, evidence, context_desc,
+  # price:<unità> (es. price:token_input), benchmark:<metrica>
+  default_sort: [availability, private_first, zero_api_cost, evidence, context_desc]
+  default_limit: 5
+
+# ---------------------------------------------------------------- freschezza
+freshness:
+  catalog_stale_after_hours: 36  # oltre, i dati di un catalogo sono "obsoleti"
+  service_stale_after_hours: 336
+
+# ---------------------------------------------------------------- controllo dei servizi privati
+health:
+  connect_timeout: 1.0           # secondi per aprire la connessione
+  request_timeout: 2.0           # limite complessivo della singola richiesta
+  check_budget_seconds: 2.0      # limite complessivo del controllo leggero di un servizio
+  deep_budget_seconds: 8.0       # controllo con dipendenze dei workflow (update, health --deep)
+  validity_seconds: 300          # per quanto vale un esito; poi torna "unknown"
+  recheck_cache_seconds: 20      # cache del ricontrollo prima dell'esecuzione
+  max_response_bytes: 4000000
+  max_dependency_checks: 20
+
+# ---------------------------------------------------------------- limiti dell'aggiornamento
+limits:
+  total_seconds: 120             # durata massima di un `update`
+  connect_timeout: 3.0
+  request_timeout: 20.0
+  max_response_bytes: 16000000
+  max_requests_per_source: 40
+  max_pages: 5
+  concurrency: 3
+  retries: 2
+  retry_backoff_seconds: 1.0
+  min_interval_seconds: 0.25
+  log_max_bytes: 1000000
+  log_backups: 3
+  lock_stale_seconds: 900

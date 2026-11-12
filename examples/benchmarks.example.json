@@ -1,0 +1,26 @@
+{
+  "_nota": "Dati FINTI. Scout non esegue benchmark: importa solo misure già fatte. In config.yaml: benchmarks: {files: [percorso/di/questo/file.json]}. 'kind' vale per tutto il file: public | provider_claim | braian_measurement.",
+  "kind": "braian_measurement",
+  "source": "esame della memoria, 20 domande (esempio finto)",
+  "entries": [
+    {
+      "endpoint_key": "ollama-shadow/gemma4-claude",
+      "model_version": null,
+      "metric": "esame_memoria",
+      "value": 12,
+      "unit": "risposte giuste su 20",
+      "conditions": {"soul": "v0.9", "ricerca": "FTS5 + vettori"},
+      "date": "2026-11-11"
+    },
+    {
+      "model_key": "autore/nome-modello",
+      "model_version": "autore/nome-modello-20260101",
+      "quantization": null,
+      "metric": "esame_memoria",
+      "value": 15,
+      "unit": "risposte giuste su 20",
+      "conditions": {"soul": "v0.9"},
+      "date": "2026-11-11"
+    }
+  ]
+}

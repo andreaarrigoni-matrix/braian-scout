@@ -1,0 +1,10 @@
+# Ambiente virtuale, dati generati e segreti: fuori dal repository.
+.venv/
+data/
+examples/demo_data/
+.env
+__pycache__/
+*.pyc
+
+# La configurazione vera contiene gli indirizzi delle macchine: resta solo in locale.
+config.yaml
